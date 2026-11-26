@@ -2,6 +2,12 @@ services:
   mysql:
     image: mysql:8.4
     container_name: mysql
+    command: >
+      --default-authentication-plugin=mysql_native_password
+      --performance-schema=OFF
+      --innodb-buffer-pool-size=64M
+      --innodb-log-buffer-size=8M
+      --max-connections=50
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
       MYSQL_ROOT_HOST: "%"
@@ -13,6 +19,11 @@ services:
       timeout: 5s
       retries: 10
       start_period: 30s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 350M
 
   usuario-service:
     build: ./Usuario-service
@@ -20,12 +31,18 @@ services:
     ports:
       - "8081:8081"
     environment:
+      JAVA_TOOL_OPTIONS: "-Xms64m -Xmx160m"
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/usuarios_db?createDatabaseIfNotExist=true&serverTimezone=UTC
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
     depends_on:
       mysql:
         condition: service_healthy
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 220M
 
   productos-service:
     build: ./Productos-service
@@ -33,12 +50,18 @@ services:
     ports:
       - "8082:8082"
     environment:
+      JAVA_TOOL_OPTIONS: "-Xms64m -Xmx160m"
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/productos_db?createDatabaseIfNotExist=true&serverTimezone=UTC
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
     depends_on:
       mysql:
         condition: service_healthy
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 220M
 
   ordenes-service:
     build: ./Ordenes-service
@@ -46,6 +69,7 @@ services:
     ports:
       - "8083:8083"
     environment:
+      JAVA_TOOL_OPTIONS: "-Xms64m -Xmx160m"
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/ordenes_db?createDatabaseIfNotExist=true&serverTimezone=UTC
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
@@ -55,6 +79,11 @@ services:
         condition: service_healthy
       productos-service:
         condition: service_started
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 220M
 
   comunidad-service:
     build: ./Comunidad-service
@@ -62,12 +91,18 @@ services:
     ports:
       - "8084:8084"
     environment:
+      JAVA_TOOL_OPTIONS: "-Xms64m -Xmx160m"
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/comunidad_db?createDatabaseIfNotExist=true&serverTimezone=UTC
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
     depends_on:
       mysql:
         condition: service_healthy
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 220M
 
   carrito-service:
     build: ./Carrito
@@ -75,12 +110,18 @@ services:
     ports:
       - "8085:8085"
     environment:
+      JAVA_TOOL_OPTIONS: "-Xms64m -Xmx160m"
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/carrito_db?createDatabaseIfNotExist=true&serverTimezone=UTC
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
     depends_on:
       mysql:
         condition: service_healthy
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 220M
 
   torneo-service:
     build: ./Torneo
@@ -88,12 +129,18 @@ services:
     ports:
       - "8086:8086"
     environment:
+      JAVA_TOOL_OPTIONS: "-Xms64m -Xmx160m"
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/torneo_db?createDatabaseIfNotExist=true&serverTimezone=UTC
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
     depends_on:
       mysql:
         condition: service_healthy
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 220M
 
   pagos-service:
     build: ./Pagos
@@ -101,18 +148,26 @@ services:
     ports:
       - "8087:8087"
     environment:
+      JAVA_TOOL_OPTIONS: "-Xms64m -Xmx160m"
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/pagos_db?createDatabaseIfNotExist=true&serverTimezone=UTC
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
     depends_on:
       mysql:
         condition: service_healthy
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 220M
 
   api-gateway:
     build: ./ApiGateway
     container_name: api-gateway
     ports:
       - "9090:9090"
+    environment:
+      JAVA_TOOL_OPTIONS: "-Xms64m -Xmx160m"
     depends_on:
       - usuario-service
       - productos-service
@@ -121,6 +176,11 @@ services:
       - carrito-service
       - torneo-service
       - pagos-service
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 220M
 
 volumes:
   mysql_data:
