@@ -1,0 +1,63 @@
+server:
+  port: 9090
+
+spring:
+  application:
+    name: ApiGateway
+  cloud:
+    gateway:
+      server:
+        webflux:
+          globalcors:
+            cors-configurations:
+              "[/**]":
+                allowedOriginPatterns: "*"
+                allowedMethods:
+                  - GET
+                  - POST
+                  - PUT
+                  - PATCH
+                  - DELETE
+                  - OPTIONS
+                allowedHeaders: "*"
+          routes:
+            - id: usuario-service
+              uri: http://usuario-service:8081
+              predicates:
+                - Path=/api/usuarios/**
+
+            - id: productos-service
+              uri: http://productos-service:8082
+              predicates:
+                - Path=/api/productos/**
+
+            - id: ordenes-service
+              uri: http://ordenes-service:8083
+              predicates:
+                - Path=/api/ordenes/**
+
+            - id: comunidad-service
+              uri: http://comunidad-service:8084
+              predicates:
+                - Path=/api/comunidad/**
+
+            - id: carrito-service
+              uri: http://carrito-service:8085
+              predicates:
+                - Path=/api/carrito/**
+
+            - id: torneo-service
+              uri: http://torneo-service:8086
+              predicates:
+                - Path=/api/torneos/**
+
+            - id: pagos-service
+              uri: http://pagos-service:8087
+              predicates:
+                - Path=/api/pagos/**
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
