@@ -14,7 +14,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/pagos")
-@CrossOrigin(origins = "*")
 public class PagoController {
 
     @Autowired
@@ -49,3 +48,4 @@ public class PagoController {
         }
     }
 }
+

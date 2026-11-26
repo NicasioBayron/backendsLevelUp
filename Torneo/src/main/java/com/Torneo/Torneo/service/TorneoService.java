@@ -78,6 +78,14 @@ public class TorneoService {
         return inscripcionTorneoRepository.save(inscripcion);
     }
 
+    @Transactional
+    public void eliminarTorneo(Long torneoId) {
+        if (!torneoRepository.existsById(torneoId)) {
+            throw new IllegalArgumentException("Torneo no encontrado");
+        }
+        torneoRepository.deleteById(torneoId);
+    }
+
     public List<InscripcionTorneo> listarParticipantes(Long torneoId) {
         return inscripcionTorneoRepository.findByTorneoId(torneoId);
     }
@@ -99,3 +107,4 @@ public class TorneoService {
         return partidaTorneoRepository.save(partida);
     }
 }
+

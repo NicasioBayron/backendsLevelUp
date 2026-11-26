@@ -12,7 +12,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/carrito")
-@CrossOrigin(origins = "*")
 public class CarritoController {
 
     @Autowired
@@ -79,3 +78,4 @@ public class CarritoController {
         }
     }
 }
+
