@@ -58,7 +58,7 @@ public class TorneoService {
         Torneo torneo = torneoRepository.findById(torneoId)
                 .orElseThrow(() -> new IllegalArgumentException("Torneo no encontrado"));
 
-        if (torneo.getInscripciones().size() >= torneo.getMaxParticipantes()) {
+        if (inscripcionTorneoRepository.findByTorneoId(torneoId).size() >= torneo.getMaxParticipantes()) {
             throw new IllegalArgumentException("El torneo ya alcanzó su cupo máximo de participantes.");
         }
 
@@ -75,7 +75,81 @@ public class TorneoService {
                 .estado("CONFIRMADA")
                 .build();
 
-        return inscripcionTorneoRepository.save(inscripcion);
+        InscripcionTorneo saved = inscripcionTorneoRepository.save(inscripcion);
+        if ("ELIMINACION".equalsIgnoreCase(torneo.getModalidad())) {
+            actualizarFixtureConParticipantes(torneo);
+        } else if ("LIGUILLA".equalsIgnoreCase(torneo.getModalidad())) {
+            actualizarLiguilla(torneo);
+        }
+        return saved;
+    }
+
+    private void actualizarFixtureConParticipantes(Torneo torneo) {
+        List<PartidaTorneo> partidas = partidaTorneoRepository.findByTorneoIdOrderByOrdenAsc(torneo.getId());
+        List<String> jugadores = inscripcionTorneoRepository.findByTorneoId(torneo.getId()).stream()
+                .map(InscripcionTorneo::getNombreJugador).toList();
+        int cuadro = 1;
+        while (cuadro < torneo.getMaxParticipantes()) cuadro *= 2;
+        int rondas = Integer.numberOfTrailingZeros(cuadro);
+        int orden = partidas.stream().mapToInt(PartidaTorneo::getOrden).max().orElse(0) + 1;
+        for (int rondaNumero = 1; rondaNumero <= rondas; rondaNumero++) {
+            String nombre = nombreRonda(cuadro, rondaNumero);
+            int enfrentamientos = cuadro / (int) Math.pow(2, rondaNumero);
+            long existentes = partidas.stream().filter(p -> nombre.equals(p.getRonda())).count();
+            for (int i = (int) existentes; i < enfrentamientos; i++) {
+                partidas.add(PartidaTorneo.builder().torneo(torneo).ronda(nombre)
+                        .jugadorUno("Por definir").jugadorDos("Por definir").orden(orden++)
+                        .estado("PENDIENTE").build());
+            }
+        }
+        partidaTorneoRepository.saveAll(partidas);
+        partidas = partidaTorneoRepository.findByTorneoIdOrderByOrdenAsc(torneo.getId());
+        String primeraRonda = nombreRonda(cuadro, 1);
+        List<PartidaTorneo> primerasPartidas = partidas.stream().filter(p -> primeraRonda.equals(p.getRonda())).toList();
+        int jugadorIndex = 0;
+        for (PartidaTorneo partida : primerasPartidas) {
+            partida.setJugadorUno(jugadorIndex < jugadores.size() ? jugadores.get(jugadorIndex++) : "Por definir");
+            partida.setJugadorDos(jugadorIndex < jugadores.size() ? jugadores.get(jugadorIndex++) : "Por definir");
+        }
+        partidaTorneoRepository.saveAll(primerasPartidas);
+    }
+
+    private String nombreRonda(int cuadro, int ronda) {
+        int enfrentamientos = cuadro / (int) Math.pow(2, ronda);
+        if (enfrentamientos == 1) return "Final";
+        if (enfrentamientos == 2) return "Semifinales";
+        if (enfrentamientos == 4) return "Cuartos de final";
+        return "Octavos de final";
+    }
+
+    private void actualizarLiguilla(Torneo torneo) {
+        List<InscripcionTorneo> inscripciones = inscripcionTorneoRepository.findByTorneoId(torneo.getId());
+        List<PartidaTorneo> partidas = partidaTorneoRepository.findByTorneoIdOrderByOrdenAsc(torneo.getId());
+        int orden = partidas.stream().mapToInt(PartidaTorneo::getOrden).max().orElse(0) + 1;
+        for (int i = 0; i < inscripciones.size(); i++) {
+            for (int j = i + 1; j < inscripciones.size(); j++) {
+                String uno = inscripciones.get(i).getNombreJugador();
+                String dos = inscripciones.get(j).getNombreJugador();
+                boolean existe = partidas.stream().anyMatch(p ->
+                        (uno.equals(p.getJugadorUno()) && dos.equals(p.getJugadorDos())) ||
+                        (uno.equals(p.getJugadorDos()) && dos.equals(p.getJugadorUno())));
+                if (!existe) {
+                    partidas.add(PartidaTorneo.builder().torneo(torneo).ronda("Jornada única")
+                            .jugadorUno(uno).jugadorDos(dos).orden(orden++)
+                            .estado("PENDIENTE").build());
+                }
+            }
+        }
+        partidaTorneoRepository.saveAll(partidas);
+    }
+
+    @Transactional
+    public void retirarJugador(Long torneoId, Long usuarioId) {
+        Torneo torneo = torneoRepository.findById(torneoId)
+                .orElseThrow(() -> new IllegalArgumentException("Torneo no encontrado"));
+        int eliminadas = inscripcionTorneoRepository.deleteByTorneoIdAndUsuarioId(torneoId, usuarioId);
+        if (eliminadas == 0) throw new IllegalArgumentException("El usuario no está inscrito en este torneo.");
+        if ("ELIMINACION".equalsIgnoreCase(torneo.getModalidad())) actualizarFixtureConParticipantes(torneo);
     }
 
     @Transactional
@@ -91,6 +165,14 @@ public class TorneoService {
     }
 
     public List<PartidaTorneo> listarPartidas(Long torneoId) {
+        Torneo torneo = torneoRepository.findById(torneoId)
+                .orElseThrow(() -> new IllegalArgumentException("Torneo no encontrado"));
+        List<PartidaTorneo> partidas = partidaTorneoRepository.findByTorneoIdOrderByOrdenAsc(torneoId);
+        if (partidas.isEmpty() && "ELIMINACION".equalsIgnoreCase(torneo.getModalidad())) {
+            actualizarFixtureConParticipantes(torneo);
+        } else if (partidas.isEmpty() && "LIGUILLA".equalsIgnoreCase(torneo.getModalidad())) {
+            actualizarLiguilla(torneo);
+        }
         return partidaTorneoRepository.findByTorneoIdOrderByOrdenAsc(torneoId);
     }
 

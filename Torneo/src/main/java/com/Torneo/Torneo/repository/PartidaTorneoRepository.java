@@ -9,4 +9,5 @@ import java.util.List;
 @Repository
 public interface PartidaTorneoRepository extends JpaRepository<PartidaTorneo, Long> {
     List<PartidaTorneo> findByTorneoIdOrderByOrdenAsc(Long torneoId);
+    void deleteByTorneoId(Long torneoId);
 }

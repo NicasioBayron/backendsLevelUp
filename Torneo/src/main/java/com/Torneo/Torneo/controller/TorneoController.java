@@ -70,6 +70,16 @@ public class TorneoController {
         return ResponseEntity.ok(torneoService.listarParticipantes(id));
     }
 
+    @DeleteMapping("/{id}/inscripciones/usuario/{usuarioId}")
+    public ResponseEntity<?> retirarJugador(@PathVariable Long id, @PathVariable Long usuarioId) {
+        try {
+            torneoService.retirarJugador(id, usuarioId);
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
     @GetMapping("/{id}/partidas")
     public ResponseEntity<List<PartidaTorneo>> listarPartidas(@PathVariable Long id) {
         return ResponseEntity.ok(torneoService.listarPartidas(id));
